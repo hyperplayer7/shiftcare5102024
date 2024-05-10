@@ -7,16 +7,9 @@ class JsonSearchController < ApplicationController
   def index
     field = params[:field]
     query = params[:query]
-    file = params[:file]
-    rating = params[:rating]
 
-    if field && query && @load_dataset
-      load_dataset
+    if field && query && load_dataset
       results = Client::Operations::DynamicSearch.new(@load_dataset, field, query).call
-      render json: { success: true, results: results }
-    elsif file && rating
-      rating_dataset
-      results = Client::Operations::RatingSearch.new(@rating_dataset, rating).call
       render json: { success: true, results: results }
     else
       render json: { success: false, error: 'Invalid parameters' }, status: :bad_request
@@ -31,25 +24,12 @@ class JsonSearchController < ApplicationController
     rescue Errno::ENOENT
       render json: { success: false, error: "File not found: #{default_dataset_file}" }, status: :not_found
     rescue JSON::ParserError
-      render json: { success: false, error: "Invalid JSON format in the file: #{default_dataset_file}" }, status: :unprocessable_entity
-    end
-  end
-
-  def rating_dataset
-    @rating_dataset ||= begin
-      JSON.parse(File.read(staff_dataset_file))
-    rescue Errno::ENOENT
-      render json: { success: false, error: "File not found: #{default_dataset_file}" }, status: :not_found
-    rescue JSON::ParserError
-      render json: { success: false, error: "Invalid JSON format in the file: #{default_dataset_file}" }, status: :unprocessable_entity
+      render json: { success: false, error: "Invalid JSON format in the file: #{default_dataset_file}" },
+             status: :unprocessable_entity
     end
   end
 
   def default_dataset_file
     File.join(Rails.root, 'db', 'clients.json')
-  end
-
-  def staff_dataset_file
-    File.join(Rails.root, 'db', 'staff.json')
   end
 end
